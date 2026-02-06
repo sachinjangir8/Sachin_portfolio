@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { FiPlus, FiEdit, FiTrash2, FiEye, FiEyeOff } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import { DeleteModal } from '@/components/admin/DeleteModal';
 
 interface Qualification {
   _id: string;
@@ -25,6 +26,11 @@ interface Qualification {
 export default function QualificationsPage() {
   const [qualifications, setQualifications] = useState<Qualification[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Modal State
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [qualificationToDelete, setQualificationToDelete] = useState<{ id: string; title: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     fetchQualifications();
@@ -41,15 +47,25 @@ export default function QualificationsPage() {
     }
   };
 
-  const handleDelete = async (id: string, title: string) => {
-    if (!confirm(`Are you sure you want to delete the qualification "${title}"? This action cannot be undone.`)) return;
+  const confirmDelete = (id: string, title: string) => {
+    setQualificationToDelete({ id, title });
+    setIsDeleteModalOpen(true);
+  };
 
+  const handleDelete = async () => {
+    if (!qualificationToDelete) return;
+
+    setIsDeleting(true);
     try {
-      await apiRequest(`/api/admin/qualifications/${id}`, { method: 'DELETE' });
+      await apiRequest(`/api/admin/qualifications/${qualificationToDelete.id}`, { method: 'DELETE' });
       toast.success('Qualification deleted successfully!');
       fetchQualifications();
+      setIsDeleteModalOpen(false);
+      setQualificationToDelete(null);
     } catch (error: any) {
       toast.error(error.message || 'Failed to delete qualification');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -103,7 +119,7 @@ export default function QualificationsPage() {
           </Link>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
@@ -192,7 +208,7 @@ export default function QualificationsPage() {
                           <FiEdit className="h-5 w-5" />
                         </Link>
                         <button
-                          onClick={() => handleDelete(qualification._id, qualification.title)}
+                          onClick={() => confirmDelete(qualification._id, qualification.title)}
                           className="text-red-600 hover:text-red-900 dark:text-red-400 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20"
                           title="Delete qualification"
                         >
@@ -206,6 +222,15 @@ export default function QualificationsPage() {
             </tbody>
           </table>
         </div>
+
+         <DeleteModal
+          isOpen={isDeleteModalOpen}
+          onClose={() => setIsDeleteModalOpen(false)}
+          onConfirm={handleDelete}
+          title="Delete Qualification"
+          message={`Are you sure you want to delete "${qualificationToDelete?.title}"? This action cannot be undone.`}
+          isDeleting={isDeleting}
+        />
       </div>
     </AdminLayout>
   );
