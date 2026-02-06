@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/shared/ThemeToggle';
-import { motion } from 'framer-motion';
+import { motion, useScroll, useTransform } from 'framer-motion';
 import { FiGithub, FiLinkedin, FiTwitter, FiFileText } from 'react-icons/fi';
+import { useEffect, useState } from 'react';
 
 interface Profile {
   githubLink?: string;
@@ -13,10 +14,26 @@ interface Profile {
 }
 
 export function Navbar({ profile }: { profile?: Profile | null }) {
+  const [isScrolled, setIsScrolled] = useState(false);
+  const { scrollY } = useScroll();
+  
+  // Transform for the nav container width/padding on scroll
+  const navWidth = useTransform(scrollY, [0, 100], ["100%", "90%"]);
+  const navTop = useTransform(scrollY, [0, 100], ["0px", "20px"]);
+  const navRadius = useTransform(scrollY, [0, 100], ["0px", "50px"]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 50);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   const navItems = [
     { href: '#projects', label: 'Projects' },
-    { href: '#tech-stack', label: 'Tech Stack' },
-    { href: '#qualifications', label: 'Qualifications' },
+    { href: '#tech-stack', label: 'Stack' },
+    { href: '#qualifications', label: 'Experience' },
     { href: '#about', label: 'About' },
   ];
 
@@ -27,87 +44,92 @@ export function Navbar({ profile }: { profile?: Profile | null }) {
   ];
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5 }}
-            className="text-xl font-bold text-gray-900 dark:text-white"
-          >
-            Portfolio
-          </motion.div>
-          <div className="flex items-center space-x-6">
-            {navItems.map((item, index) => (
-              <motion.a
-                key={item.href}
-                href={item.href}
-                className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 relative"
-                whileHover={{ y: -2 }}
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: index * 0.1 }}
-              >
-                {item.label}
-                <motion.span
-                  className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary-500"
-                  whileHover={{ width: '100%' }}
-                  transition={{ duration: 0.3 }}
-                />
-              </motion.a>
-            ))}
-            {profile?.resumeLink && (
-              <motion.a
-                href={profile.resumeLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 relative"
-                whileHover={{ y: -2 }}
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.4 }}
-              >
-                <FiFileText className="mr-1 h-4 w-4" />
-                Resume
-                <motion.span
-                  className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary-500"
-                  whileHover={{ width: '100%' }}
-                  transition={{ duration: 0.3 }}
-                />
-              </motion.a>
-            )}
+    <motion.div
+      className="fixed z-50 left-0 right-0 flex justify-center pointer-events-none"
+      style={{
+        width: "100%",
+        top: navTop,
+      }}
+    >
+      <motion.nav
+        style={{
+          width: navWidth,
+          borderRadius: navRadius,
+        }}
+        className={`pointer-events-auto transition-all duration-500 ease-in-out border border-transparent
+          ${isScrolled 
+            ? 'glass border-white/20 shadow-xl max-w-5xl bg-white/70 dark:bg-black/60' 
+            : 'bg-transparent'
+          }`}
+      >
+        <div className="px-6 sm:px-8">
+          <div className="flex justify-between items-center h-16 md:h-20">
+            {/* Logo */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="flex-shrink-0"
+            >
+              <Link href="/" className="group flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-primary-600 to-accent-500 flex items-center justify-center text-white font-bold text-xl group-hover:shadow-[0_0_20px_rgba(99,102,241,0.5)] transition-all duration-300">
+                  P
+                </div>
+                <span className="text-xl font-heading font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300">
+                  Portfolio
+                </span>
+              </Link>
+            </motion.div>
+
+            {/* Desktop Nav */}
+            <div className="hidden md:flex items-center space-x-8">
+              {navItems.map((item, index) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="relative text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors group"
+                >
+                  {item.label}
+                  <span className="absolute -bottom-1 left-1/2 w-0 h-0.5 bg-primary-500 group-hover:w-full group-hover:left-0 transition-all duration-300 ease-out" />
+                </Link>
+              ))}
+            </div>
+
+            {/* Right Side Actions */}
             <div className="flex items-center space-x-4">
-              {socialLinks
-                .filter(link => link.href)
-                .map((link, index) => (
+               {/* Resume Button */}
+              {profile?.resumeLink && (
                   <motion.a
-                    key={link.label}
-                    href={link.href}
+                    href={profile.resumeLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400"
-                    whileHover={{ y: -3, scale: 1.1 }}
+                    whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: 0.5 + index * 0.1 }}
+                    className="hidden lg:flex items-center px-4 py-2 text-sm font-medium text-white bg-gray-900 dark:bg-white dark:text-gray-900 rounded-full hover:shadow-lg hover:shadow-primary-500/20 transition-all duration-300"
                   >
-                    {link.icon}
+                    <FiFileText className="mr-2 h-4 w-4" />
+                    Resume
                   </motion.a>
-                ))
-              }
+              )}
+
+              <div className="flex items-center gap-3 pl-4 border-l border-gray-200 dark:border-gray-800">
+                  {socialLinks.filter(l => l.href).map((link, i) => (
+                    <motion.a
+                      key={i}
+                      href={link.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors"
+                      whileHover={{ y: -2, rotate: 5 }}
+                    >
+                      {link.icon}
+                    </motion.a>
+                  ))}
+                  <ThemeToggle />
+              </div>
             </div>
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: 0.8 }}
-            >
-              <ThemeToggle />
-            </motion.div>
           </div>
         </div>
-      </div>
-    </nav>
+      </motion.nav>
+    </motion.div>
   );
 }

@@ -82,21 +82,56 @@ export async function updateCategory(id: string, updates: Partial<Category>): Pr
 export async function deleteCategory(id: string): Promise<void> {
   const db = await getDb();
   const { ObjectId } = await import('mongodb');
-  await db.collection(COLLECTIONS.CATEGORIES).deleteOne({ _id: new ObjectId(id) });
+  
+  // First, find the category to make sure we handle projects properly
+  const category = await db.collection(COLLECTIONS.CATEGORIES).findOne({ _id: new ObjectId(id) });
+  
+  if (category) {
+    // Remove category reference from all projects that reference this category
+    await db.collection(COLLECTIONS.PROJECTS).updateMany(
+      { category: id },
+      { $unset: { category: "" } }
+    );
+    
+    // Now delete the category
+    await db.collection(COLLECTIONS.CATEGORIES).deleteOne({ _id: new ObjectId(id) });
+  }
 }
 
 // Project Model
 export async function getAllProjects(publishedOnly: boolean = false): Promise<Project[]> {
   const db = await getDb();
-  const query = publishedOnly ? { isPublished: true } : {};
-  return await db.collection<Project>(COLLECTIONS.PROJECTS)
+  
+  // Get all existing categories to validate project categories
+  const categories = await db.collection(COLLECTIONS.CATEGORIES).find({}).toArray();
+  const categoryIds = categories.map(cat => cat._id.toString());
+  
+  const query: any = {};
+  if (publishedOnly) {
+    query.isPublished = true;
+  }
+  
+  const projects = await db.collection<Project>(COLLECTIONS.PROJECTS)
     .find(query)
     .sort({ createdAt: -1 })
     .toArray();
+  
+  // Filter out projects with deleted categories
+  return projects.filter(project => 
+    project.category && categoryIds.includes(project.category.toString())
+  );
 }
 
 export async function getProjectsByCategory(categoryId: string, publishedOnly: boolean = true): Promise<Project[]> {
   const db = await getDb();
+  
+  // First verify that the category exists
+  const { ObjectId } = await import('mongodb');
+  const categoryExists = await db.collection(COLLECTIONS.CATEGORIES).findOne({ _id: new ObjectId(categoryId) });
+  if (!categoryExists) {
+    return [];
+  }
+  
   const query: any = { category: categoryId };
   if (publishedOnly) {
     query.isPublished = true;

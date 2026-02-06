@@ -1,17 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { apiRequest } from '@/lib/api';
 import toast from 'react-hot-toast';
-import { FiSave, FiX, FiTrash2 } from 'react-icons/fi';
+import { FiSave, FiX } from 'react-icons/fi';
 
-export default function ProjectFormPage() {
+export default function NewProjectPage() {
   const router = useRouter();
-  const params = useParams();
-  const projectId = params.id as string;
-  const [loading, setLoading] = useState(true);
+  
   const [saving, setSaving] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
   const [formData, setFormData] = useState({
@@ -27,8 +25,7 @@ export default function ProjectFormPage() {
 
   useEffect(() => {
     fetchCategories();
-    fetchProject();
-  }, [projectId]);
+  }, []);
 
   const fetchCategories = async () => {
     try {
@@ -36,28 +33,6 @@ export default function ProjectFormPage() {
       setCategories(data.categories);
     } catch (error) {
       console.error('Failed to fetch categories:', error);
-    }
-  };
-
-  const fetchProject = async () => {
-    try {
-      const data = await apiRequest<{ project: any }>(`/api/admin/projects/${projectId}`);
-      const project = data.project;
-      setFormData({
-        title: project.title || '',
-        description: project.description || '',
-        techStack: Array.isArray(project.techStack) ? project.techStack.join(', ') : '',
-        category: project.category || '',
-        liveDemoLink: project.liveDemoLink || '',
-        githubLink: project.githubLink || '',
-        images: Array.isArray(project.images) ? project.images.join(', ') : '',
-        isPublished: project.isPublished || false,
-      });
-    } catch (error) {
-      toast.error('Failed to load project');
-      router.push('/admin/projects');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -72,11 +47,12 @@ export default function ProjectFormPage() {
         images: formData.images.split(',').map((i) => i.trim()).filter(Boolean),
       };
 
-      await apiRequest(`/api/admin/projects/${projectId}`, {
-        method: 'PUT',
+      await apiRequest('/api/admin/projects', {
+        method: 'POST',
         body: JSON.stringify(payload),
       });
-      toast.success('Project updated!');
+      
+      toast.success('Project created!');
       router.push('/admin/projects');
     } catch (error: any) {
       toast.error(error.message || 'Failed to save project');
@@ -85,37 +61,15 @@ export default function ProjectFormPage() {
     }
   };
 
-  const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this project? This action cannot be undone.')) return;
-
-    try {
-      await apiRequest(`/api/admin/projects/${projectId}`, { method: 'DELETE' });
-      toast.success('Project deleted successfully!');
-      router.push('/admin/projects');
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to delete project');
-    }
-  };
-
-  if (loading) {
-    return (
-      <AdminLayout>
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
-        </div>
-      </AdminLayout>
-    );
-  }
-
   return (
     <AdminLayout>
       <div className="px-4 py-6 sm:px-0">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Edit Project
+            New Project
           </h1>
           <button
-            onClick={() => router.back()}
+            onClick={() => router.push('/admin/projects')}
             className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
           >
             <FiX className="mr-2 h-4 w-4" />
@@ -234,34 +188,22 @@ export default function ProjectFormPage() {
             </label>
           </div>
 
-          <div className="flex justify-between items-center pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex justify-end space-x-3">
             <button
               type="button"
-              onClick={handleDelete}
-              disabled={saving}
-              className="inline-flex items-center px-4 py-2 border border-red-300 dark:border-red-600 rounded-md shadow-sm text-sm font-medium text-red-700 dark:text-red-400 bg-white dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-900/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+              onClick={() => router.push('/admin/projects')}
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
             >
-              <FiTrash2 className="mr-2 h-4 w-4" />
-              Delete Project
+              Cancel
             </button>
-            
-            <div className="flex space-x-3 ml-auto">
-              <button
-                type="button"
-                onClick={() => router.back()}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={saving}
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
-              >
-                <FiSave className="mr-2 h-4 w-4" />
-                {saving ? 'Saving...' : 'Update Project'}
-              </button>
-            </div>
+            <button
+              type="submit"
+              disabled={saving}
+              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
+            >
+              <FiSave className="mr-2 h-4 w-4" />
+              {saving ? 'Saving...' : 'Create Project'}
+            </button>
           </div>
         </form>
       </div>

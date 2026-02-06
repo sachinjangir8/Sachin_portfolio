@@ -146,13 +146,16 @@ export default function SkillsPage() {
     });
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Delete this skill?')) return;
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`Are you sure you want to delete the skill "${name}"? This action cannot be undone.`)) return;
 
     try {
       await apiRequest(`/api/admin/skills/${id}`, { method: 'DELETE' });
-      toast.success('Skill deleted');
+      toast.success('Skill deleted successfully!');
       fetchSkills();
+      if (editingId === id) {
+        resetForm();
+      }
     } catch (error: any) {
       toast.error(error.message || 'Failed to delete skill');
     }
@@ -308,21 +311,40 @@ export default function SkillsPage() {
             </label>
           </div>
 
-          <div className="flex justify-end space-x-3">
-            <button
-              type="button"
-              onClick={resetForm}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
-            >
-              Clear
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
-            >
-              {saving ? 'Saving...' : editingId ? 'Update Skill' : 'Add Skill'}
-            </button>
+          <div className="flex justify-between items-center pt-4 border-t border-gray-200 dark:border-gray-700">
+            {editingId && (
+              <button
+                type="button"
+                onClick={() => {
+                  const skill = skills.find(s => s._id === editingId);
+                  if (skill) {
+                    handleDelete(editingId, skill.name);
+                  }
+                }}
+                disabled={saving}
+                className="inline-flex items-center px-4 py-2 border border-red-300 dark:border-red-600 rounded-md shadow-sm text-sm font-medium text-red-700 dark:text-red-400 bg-white dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-900/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+              >
+                <FiTrash2 className="mr-2 h-4 w-4" />
+                Delete Skill
+              </button>
+            )}
+            
+            <div className="flex space-x-3 ml-auto">
+              <button
+                type="button"
+                onClick={resetForm}
+                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
+              >
+                {editingId ? 'Cancel' : 'Clear'}
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
+              >
+                {saving ? 'Saving...' : editingId ? 'Update Skill' : 'Add Skill'}
+              </button>
+            </div>
           </div>
         </form>
 
@@ -409,8 +431,9 @@ export default function SkillsPage() {
                           <FiEdit className="h-5 w-5" />
                         </button>
                         <button
-                          onClick={() => handleDelete(skill._id)}
-                          className="text-red-600 hover:text-red-900 dark:text-red-400"
+                          onClick={() => handleDelete(skill._id, skill.name)}
+                          className="text-red-600 hover:text-red-900 dark:text-red-400 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20"
+                          title="Delete skill"
                         >
                           <FiTrash2 className="h-5 w-5" />
                         </button>

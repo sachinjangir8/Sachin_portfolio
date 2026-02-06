@@ -41,12 +41,12 @@ export default function QualificationsPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this qualification?')) return;
+  const handleDelete = async (id: string, title: string) => {
+    if (!confirm(`Are you sure you want to delete the qualification "${title}"? This action cannot be undone.`)) return;
 
     try {
       await apiRequest(`/api/admin/qualifications/${id}`, { method: 'DELETE' });
-      toast.success('Qualification deleted');
+      toast.success('Qualification deleted successfully!');
       fetchQualifications();
     } catch (error: any) {
       toast.error(error.message || 'Failed to delete qualification');
@@ -192,8 +192,9 @@ export default function QualificationsPage() {
                           <FiEdit className="h-5 w-5" />
                         </Link>
                         <button
-                          onClick={() => handleDelete(qualification._id)}
-                          className="text-red-600 hover:text-red-900 dark:text-red-400"
+                          onClick={() => handleDelete(qualification._id, qualification.title)}
+                          className="text-red-600 hover:text-red-900 dark:text-red-400 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20"
+                          title="Delete qualification"
                         >
                           <FiTrash2 className="h-5 w-5" />
                         </button>
